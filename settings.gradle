@@ -8,3 +8,6 @@ dependencyResolutionManagement {
 }
 rootProject.name = "yolov5-tflite-android"
 include ':app'
+
+include ':opencv'
+project(':opencv').projectDir = new File(opencvsdk + '/sdk')

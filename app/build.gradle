@@ -15,7 +15,9 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                cppFlags ''
+                cppFlags "-frtti -fexceptions"
+                abiFilters 'armeabi-v7a', 'arm64-v8a'
+                arguments "-DOpenCV_DIR=" + opencvsdk + "/sdk/native"
             }
         }
     }
@@ -71,4 +73,5 @@ dependencies {
 
     implementation 'org.apache.commons:commons-compress:1.21'
 
+    implementation project(path: ':opencv')
 }

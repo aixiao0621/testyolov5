@@ -1,33 +1,29 @@
-
 # For more information about using CMake with Android Studio, read the
 # documentation: https://d.android.com/studio/projects/add-native-code.html.
 # For more examples on how to use CMake, see https://github.com/android/ndk-samples.
 
-# Sets the minimum CMake version required for this project.
 cmake_minimum_required(VERSION 3.22.1)
 
-# Declares the project name. The project name can be accessed via ${ PROJECT_NAME},
-# Since this is the top level CMakeLists.txt, the project name is also accessible
-# with ${CMAKE_PROJECT_NAME} (both CMake variables are in-sync within the top level
-# build script scope).
 project("yolov5tfliteandroid")
 
-# Creates and names a library, sets it as either STATIC
-# or SHARED, and provides the relative paths to its source code.
-# You can define multiple libraries, and CMake builds them for you.
-# Gradle automatically packages shared libraries with your APK.
-#
-# In this top level CMakeLists.txt, ${CMAKE_PROJECT_NAME} is used to define
-# the target library name; in the sub-module's CMakeLists.txt, ${PROJECT_NAME}
-# is preferred for the same purpose.
-#
-# In order to load a library into your app from Java/Kotlin, you must call
-# System.loadLibrary() and pass the name of the library defined here;
-# for GameActivity/NativeActivity derived applications, the same library name must be
-# used in the AndroidManifest.xml file.
 add_library(${CMAKE_PROJECT_NAME} SHARED
-    # List C/C++ source files with relative paths to this CMakeLists.txt.
-    yolov5tfliteandroid.cpp)
+    yolov5tfliteandroid.cpp
+    face_detection.cpp
+    face_detection.hpp
+)
+set(INCLUDE_DIRS
+        ${OpenCV_DIR}/jni/include
+        ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/tf-lite-api/include
+        ${CMAKE_CURRENT_LIST_DIR}/tf-lite-api/include/flatbuffers/include)
+include_directories(${INCLUDE_DIRS})
+add_library( lib_opencv SHARED IMPORTED )
+set_target_properties(lib_opencv PROPERTIES IMPORTED_LOCATION
+        ${OpenCV_DIR}/libs/${ANDROID_ABI}/libopencv_java4.so)
+
+add_library(tflite SHARED IMPORTED)
+set_target_properties(tflite PROPERTIES IMPORTED_LOCATION
+        ${CMAKE_CURRENT_LIST_DIR}/tf-lite-api/generated-libs/${ANDROID_ABI}/libtensorflowlite.so)
 
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
@@ -41,4 +37,4 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE -D_FORTIFY_SOURCE=2)
 
 # 导入zlib库
 find_library(zlib-lib z)
-target_link_libraries(yolov5tfliteandroid ${zlib-lib})
+target_link_libraries(yolov5tfliteandroid ${zlib-lib} lib_opencv tflite)
