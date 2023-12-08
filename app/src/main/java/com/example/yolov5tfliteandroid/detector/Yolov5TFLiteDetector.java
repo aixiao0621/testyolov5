@@ -144,8 +144,6 @@ public class Yolov5TFLiteDetector {
         // 获取模型文件的路径
         String modelFilePath = ModelAndLabel.getInstance().getModel();
         File modelFile = new File(modelFilePath);
-        Log.e("aabb", modelFile.getAbsolutePath());
-
         try {
             FileInputStream fis = new FileInputStream(modelFile);
             byte[] modelBytes = new byte[(int) modelFile.length()];
@@ -205,7 +203,6 @@ public class Yolov5TFLiteDetector {
 
         // yolov5s-tflite的输出是:[1, 6300, 85], 可以从v5的GitHub release处找到相关tflite模型, 输出是[0,1], 处理到320.
         TensorBuffer probabilityBuffer;
-        Log.d("fucked", "data" + yolov5sTfliteInput.getBuffer().array().length);
         // 推理计算
         if (detectorPtr != 0) {
             outputBuffer = detect(
@@ -226,22 +223,13 @@ public class Yolov5TFLiteDetector {
                             outputBuffer[i+5])
                     );
                 }
-                Log.d("fuck", "==?" +
-                        boxes.get(0).x1 + "?" +
-                        boxes.get(0).y1 + "?" +
-                        boxes.get(0).x2 + "?" +
-                        boxes.get(0).y2 + ">" +
-                        boxes.get(0).score + "?" +
-                        associatedAxisLabels.get((int) boxes.get(0).label));
             }
 
         }
 
-        Log.d("fuck", "" + boxes.size());
         for (int i = 0; i < boxes.size(); i++) {
             box_t box = boxes.get(i);
             if(box.label > associatedAxisLabels.size()){
-                Log.d("fuck", "label > associatedAxisLabels.size()" + box.label);
                 continue;
             }
             Recognition r = new Recognition(
