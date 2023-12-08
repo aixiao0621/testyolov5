@@ -210,9 +210,9 @@ public class Yolov5TFLiteDetector {
         if (detectorPtr != 0) {
             outputBuffer = detect(
                     detectorPtr,
-                    yolov5sTfliteInput.getBuffer().array(),
-                    bitmap.getWidth(),
-                    bitmap.getHeight());
+                    yolov5sTfliteInput.getTensorBuffer().getBuffer().array(),
+                    yolov5sTfliteInput.getWidth(),
+                    yolov5sTfliteInput.getHeight());
             if (outputBuffer.length != 0){
                 boxes.clear();
 
