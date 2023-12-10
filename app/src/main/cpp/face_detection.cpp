@@ -19,6 +19,7 @@ void FaceDetector::loadModel(){
     tflite::ops::builtin::BuiltinOpResolver resolver;
     tflite::InterpreterBuilder builder(*mModel, resolver);
     builder(&mInterpreter);
+    assert(mInterpreter != nullptr);
 
     TfLiteStatus status = mInterpreter->AllocateTensors();
 
@@ -30,18 +31,18 @@ void FaceDetector::loadModel(){
     _in_channels = dims->data[3];
     _in_type = mInterpreter->tensor(_input)->type;
     _input_8 = mInterpreter->typed_tensor<uint8_t>(_input);
+    _in_type = mInterpreter->tensor(_input)->type;
 
     mInterpreter->SetNumThreads(nthreads);
 
-    assert(mInterpreter != nullptr);
 
-    assert(mInterpreter->AllocateTensors() == kTfLiteOk);
+    assert(status == kTfLiteOk);
 
     assert(mInterpreter->inputs().size() == 1);
 
 }
 
-void FaceDetector::array2Mat(char* bytes, cv::Mat& mat, int h, int w) {
+void FaceDetector:: array2Mat(char* bytes, cv::Mat& mat, int h, int w) {
     // 检查输入参数
     assert(bytes != nullptr);
     assert(mat.empty());
@@ -88,10 +89,14 @@ void FaceDetector::nonMaximumSupprition(std::vector<std::vector<float>>& predV,
                 scores.push_back(predV[i][j] * predV[i][4]);
             }
 
-            cv::minMaxLoc(scores, 0, &confidence, 0, &classId);
-            scores.clear();
-            if (confidence > confThreshold)
-            {
+            cv::minMaxLoc(
+                    scores,
+                    0,
+                    &confidence,
+                    0,
+                    &classId);
+
+            if (confidence > confThreshold) {
                 boxes.push_back(cv::Rect(left, top, w, h));
                 confidences.push_back(confidence);
                 classIds.push_back(classId.x);
@@ -100,29 +105,44 @@ void FaceDetector::nonMaximumSupprition(std::vector<std::vector<float>>& predV,
         }
     }
 
-    cv::dnn::NMSBoxes(boxesNMS, confidences, confThreshold, nmsThreshold, indices);
+    cv::dnn::NMSBoxes(
+            boxesNMS,
+            confidences,
+            confThreshold,
+            nmsThreshold,
+            indices);
 }
 
 void FaceDetector::preProcess(cv::Mat &img) {
-    cv::resize(img, img, cv::Size(_in_height, _in_width), cv::INTER_CUBIC);
-    img.convertTo(img, CV_8U);
+    cv::resize(
+            img,
+            img,
+            cv::Size(
+                    _in_width,
+                    _in_height),
+            cv::INTER_CUBIC);
+//    img.convertTo(img, CV_8U);
 }
 
-void FaceDetector::detect(cv::Mat &img,
-                          std::vector<FaceInfo> &res) {
+void FaceDetector::detect(
+    cv::Mat &img,
+    std::vector<FaceInfo> &res) {
 
     _img_height = img.rows;
     _img_width = img.cols;
 
     preProcess(img);
-    // Inference
-    mInterpreter->Invoke();
+    fill(_input_8, img);
+
+    auto state = mInterpreter->Invoke();
+    if (state!= kTfLiteOk) {
+        throw std::runtime_error("Invoke failed");
+    }
 
     int _out = mInterpreter->outputs()[0];
     TfLiteIntArray *_out_dims = mInterpreter->tensor(_out)->dims;
     int _out_row   = _out_dims->data[1];   // 25200
     int _out_colum = _out_dims->data[2];   // class number + 5 ---> 85     bbox cond class
-    // int _out_type  = _interpreter->tensor(_out)->type;
 
     TfLiteTensor *pOutputTensor = mInterpreter->tensor(mInterpreter->outputs()[0]);
 
@@ -172,13 +192,19 @@ void FaceDetector::tensor2Vector2d(
         predV.push_back(_tem);
     }
 }
-
+// 👇👇👇👇👇👇
 void FaceDetector::fill(uint8_t *in, cv::Mat &src) {
     int n = 0, nc = src.channels(), ne = src.elemSize();
-    for (int y = 0; y < src.rows; ++y)
-        for (int x = 0; x < src.cols; ++x)
-            for (int c = 0; c < nc; ++c)
-                in[n++] = src.data[y * src.step + x * ne + c];
+
+    if (src.isContinuous()){
+        memcpy(in, src.data, nc * src.cols * src.rows);
+        return;
+    }
+//
+//    for (int y = 0; y < src.rows; ++y)
+//        for (int x = 0; x < src.cols; ++x)
+//            for (int c = 0; c < nc; ++c)
+//                in[n++] = src.data[y * src.step + x * ne + c];
 }
 
 FaceDetector::~FaceDetector() = default;

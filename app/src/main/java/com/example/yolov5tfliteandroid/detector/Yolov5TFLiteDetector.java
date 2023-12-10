@@ -205,17 +205,15 @@ public class Yolov5TFLiteDetector {
 
         // yolov5s-tflite的输出是:[1, 6300, 85], 可以从v5的GitHub release处找到相关tflite模型, 输出是[0,1], 处理到320.
         TensorBuffer probabilityBuffer;
-        Log.d("fucked", "data" + yolov5sTfliteInput.getBuffer().array().length);
         // 推理计算
         if (detectorPtr != 0) {
             outputBuffer = detect(
                     detectorPtr,
-                    yolov5sTfliteInput.getBuffer().array(),
-                    bitmap.getWidth(),
-                    bitmap.getHeight());
+                    yolov5sTfliteInput.getTensorBuffer().getBuffer().array(),
+                    yolov5sTfliteInput.getWidth(),
+                    yolov5sTfliteInput.getHeight());
             if (outputBuffer.length != 0){
                 boxes.clear();
-
                 for (int i = 0; i < outputBuffer.length; i += 6){
                     boxes.add(new box_t(
                             outputBuffer[i],
@@ -237,7 +235,7 @@ public class Yolov5TFLiteDetector {
 
         }
 
-        Log.d("fuck", "" + boxes.size());
+        Log.d("fuck", "==+++>" + boxes.size());
         for (int i = 0; i < boxes.size(); i++) {
             box_t box = boxes.get(i);
             if(box.label > associatedAxisLabels.size()){

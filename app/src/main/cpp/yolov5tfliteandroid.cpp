@@ -7,12 +7,12 @@
 
 
 char* ConvertJByteaArrayToChars(JNIEnv *env, jbyteArray bytearray){
-    char *chars = NULL;
+    char *chars = nullptr;
     jbyte *bytes;
+
     bytes = env->GetByteArrayElements(bytearray, 0);
     int chars_len = env->GetArrayLength(bytearray);
     chars = new char[chars_len];
-    memset(chars,0,chars_len);
     memcpy(chars, bytes, chars_len);
     chars[chars_len] = 0;
 
@@ -80,12 +80,21 @@ JNIEXPORT jfloatArray Java_com_example_yolov5tfliteandroid_detector_Yolov5TFLite
     cv::Mat desMat{};
     std::vector<FaceInfo> res;
 
-    auto src_data = ConvertJByteaArrayToChars(env, src);
-    FaceDetector::array2Mat(src_data, desMat, height, width);
-    detector->detect(desMat, res);
-    const auto arr_len = kFaceAttb * res.size();
-    detections = env->NewFloatArray(arr_len);
+    // convert src to char[]
+    char* src_data = reinterpret_cast<char *>(env->GetByteArrayElements(src, 0));
 
-    env->SetFloatArrayRegion(detections, 0, arr_len, reinterpret_cast<const jfloat *>(res.data()));
+    try{
+
+        FaceDetector::array2Mat(src_data, desMat, height, width);
+        detector->detect(desMat, res);
+        const auto arr_len = kFaceAttb * res.size();
+        detections = env->NewFloatArray(arr_len);
+
+        env->SetFloatArrayRegion(detections, 0, arr_len, reinterpret_cast<const jfloat *>(res.data()));
+    }catch (std::exception e){
+        jclass jc = env->FindClass("java/lang/Error");
+        if(jc) env->ThrowNew (jc, e.what());
+    }
+
     return detections;
 }

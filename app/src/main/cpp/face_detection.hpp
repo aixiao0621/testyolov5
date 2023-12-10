@@ -26,9 +26,9 @@ struct FaceInfo{
 class FaceDetector{
 private:
 
-    // thresh hold
-    const float confThreshold = 0.5;
-    const float nmsThreshold = 0.5;
+    // threshold
+    const float confThreshold = 0.0;
+    const float nmsThreshold = 0.0;
 
     std::shared_ptr<char>mModelBuffer{};
     long mModelSize;
