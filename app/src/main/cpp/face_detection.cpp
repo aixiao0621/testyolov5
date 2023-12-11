@@ -30,7 +30,7 @@ void FaceDetector::loadModel(){
     _in_width = dims->data[2];
     _in_channels = dims->data[3];
     _in_type = mInterpreter->tensor(_input)->type;
-    _input_8 = mInterpreter->typed_tensor<uint8_t>(_input);
+    _input_8 = mInterpreter->typed_tensor<float>(_input);
     _in_type = mInterpreter->tensor(_input)->type;
 
     mInterpreter->SetNumThreads(nthreads);
@@ -193,7 +193,7 @@ void FaceDetector::tensor2Vector2d(
     }
 }
 // 👇👇👇👇👇👇
-void FaceDetector::fill(uint8_t *in, cv::Mat &src) {
+void FaceDetector::fill(float *in, cv::Mat &src) {
     int n = 0, nc = src.channels(), ne = src.elemSize();
 
     if (src.isContinuous()){
