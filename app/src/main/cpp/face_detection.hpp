@@ -45,7 +45,7 @@ private:
     int _img_height;
     int _img_width;
 
-    float *_input_8;
+    uint8_t *_input_8;
 
     const size_t nthreads = 1;
 
@@ -79,7 +79,8 @@ public:
 private:
     void loadModel();
 
-    void fill(float *in, cv::Mat &src);
+    template <typename T>
+    void fill(T *in, cv::Mat &src);
 
     void nonMaximumSupprition(std::vector<std::vector<float>>& predV,
                               std::vector<cv::Rect> &boxes,

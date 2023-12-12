@@ -30,7 +30,7 @@ void FaceDetector::loadModel(){
     _in_width = dims->data[2];
     _in_channels = dims->data[3];
     _in_type = mInterpreter->tensor(_input)->type;
-    _input_8 = mInterpreter->typed_tensor<float>(_input);
+    _input_8 = mInterpreter->typed_tensor<uint8_t>(_input);
     _in_type = mInterpreter->tensor(_input)->type;
 
     mInterpreter->SetNumThreads(nthreads);
@@ -76,15 +76,14 @@ void FaceDetector::nonMaximumSupprition(std::vector<std::vector<float>>& predV,
     cv::Point classId;
 
     for (int i = 0; i < row; i++){
-        if (predV[i][4] > confThreshold){
+        if (predV[i][4] > confThreshold) {
             // height--> image.rows,  width--> image.cols;
             int left = (predV[i][0] - predV[i][2] / 2) * _img_width;
             int top = (predV[i][1] - predV[i][3] / 2) * _img_height;
             int w = predV[i][2] * _img_width;
             int h = predV[i][3] * _img_height;
 
-            for (int j = 5; j < colum; j++)
-            {
+            for (int j = 5; j < colum; j++) {
                 // conf = obj_conf * cls_conf
                 scores.push_back(predV[i][j] * predV[i][4]);
             }
@@ -141,8 +140,15 @@ void FaceDetector::detect(
 
     int _out = mInterpreter->outputs()[0];
     TfLiteIntArray *_out_dims = mInterpreter->tensor(_out)->dims;
-    int _out_row   = _out_dims->data[1];   // 25200
+    int _out_row   = _out_dims->data[1];   // 6300
     int _out_colum = _out_dims->data[2];   // class number + 5 ---> 85     bbox cond class
+
+    /*  model with
+	 *{
+	 *	 "output_size": [1, 6300, 85],
+	 *	 "input_size":  [320, 320]
+	 *}
+	 */
 
     TfLiteTensor *pOutputTensor = mInterpreter->tensor(mInterpreter->outputs()[0]);
 
@@ -169,6 +175,7 @@ void FaceDetector::detect(
                 static_cast<float>(boxes[indices[i]].x + boxes[indices[i]].width),
                 static_cast<float>(boxes[indices[i]].y + boxes[indices[i]].height),
                 confidences[indices[i]],
+                // class id -> int
                 static_cast<float>(classIds[indices[i]])
             });
     }
@@ -181,11 +188,10 @@ void FaceDetector::tensor2Vector2d(
         const int col) {
     auto scale = tensor->params.scale;
     auto zero_point = tensor->params.zero_point;
-    for (int32_t i = 0; i < row; i++)
-    {
+    for (int32_t i = 0; i < row; i++) {
         std::vector<float> _tem;
-        for (int j = 0; j < col; j++)
-        {
+        for (int j = 0; j < col; j++) {
+            // scale => 1?
             float val_float = (((int32_t)tensor->data.uint8[i * col + j]) - zero_point) * scale;
             _tem.push_back(val_float);
         }
@@ -193,18 +199,19 @@ void FaceDetector::tensor2Vector2d(
     }
 }
 // 👇👇👇👇👇👇
-void FaceDetector::fill(float *in, cv::Mat &src) {
+template <typename T>
+void FaceDetector::fill(T *in, cv::Mat &src) {
     int n = 0, nc = src.channels(), ne = src.elemSize();
 
     if (src.isContinuous()){
         memcpy(in, src.data, nc * src.cols * src.rows);
         return;
     }
-//
-//    for (int y = 0; y < src.rows; ++y)
-//        for (int x = 0; x < src.cols; ++x)
-//            for (int c = 0; c < nc; ++c)
-//                in[n++] = src.data[y * src.step + x * ne + c];
+
+   for (int y = 0; y < src.rows; ++y)
+       for (int x = 0; x < src.cols; ++x)
+           for (int c = 0; c < nc; ++c)
+               in[n++] = src.data[y * src.step + x * ne + c];
 }
 
 FaceDetector::~FaceDetector() = default;
