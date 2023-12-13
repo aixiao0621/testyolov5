@@ -30,15 +30,13 @@ void FaceDetector::loadModel(){
     _in_width = dims->data[2];
     _in_channels = dims->data[3];
     _in_type = mInterpreter->tensor(_input)->type;
-    _input_8 = mInterpreter->typed_tensor<uint8_t>(_input);
+    // yolo v5 input tensor which is kTFLiteFloat32
+    _input_8 = mInterpreter->typed_input_tensor<float>(_input);
 
     mInterpreter->SetNumThreads(nthreads);
 
-
     assert(status == kTfLiteOk);
-
     assert(mInterpreter->inputs().size() == 1);
-
 }
 
 void FaceDetector:: array2Mat(char* bytes, cv::Mat& mat, int h, int w) {
@@ -54,7 +52,7 @@ void FaceDetector:: array2Mat(char* bytes, cv::Mat& mat, int h, int w) {
     // 遍历图像像素
     for (int i = 0; i < h; i++) {
         for (int j = 0; j < w; j++) {
-            // 从 BGRA 转换为 RGB
+            // 从 BGRA 转换为 BGR
             mat.at<cv::Vec3b>(i, j)[0] = bytes[i * w * 4 + j * 4];
             mat.at<cv::Vec3b>(i, j)[1] = bytes[i * w * 4 + j * 4 + 1];
             mat.at<cv::Vec3b>(i, j)[2] = bytes[i * w * 4 + j * 4 + 2];
@@ -121,7 +119,10 @@ void FaceDetector::preProcess(cv::Mat &img) {
             _in_width,
             _in_height),
         cv::INTER_CUBIC);
-        /*img.convertTo(img, CV_32FC3);*/
+        // convert img from uchar to f32 
+        img.convertTo(img, CV_32FC3);
+        // normalize
+        img /= 255;
 }
 void FaceDetector::detect(
     cv::Mat &img,
@@ -137,7 +138,6 @@ void FaceDetector::detect(
     if (state!= kTfLiteOk) {
         throw std::runtime_error("Invoke failed");
     }
-    std::cout << "after invoke ==>\n\n\n\n" << std::endl;
 
     int _out = mInterpreter->outputs()[0];
     TfLiteIntArray *_out_dims = mInterpreter->tensor(_out)->dims;
@@ -146,7 +146,7 @@ void FaceDetector::detect(
 
 	/*  model with
 	 *{
-	 *	 "output_size": [1, 25200, 85],
+	 *	 "output_size": [1, 6300, 85],
 	 *	 "input_size":  [320, 320]
 	 *}
 	 */
@@ -186,14 +186,15 @@ void FaceDetector::tensor2Vector2d(
     std::vector<std::vector<float>> &predV,
     const int row,
     const int col) {
-    auto scale = tensor->params.scale;
-    auto zero_point = tensor->params.zero_point;
 
     for (int32_t i = 0; i < row; i++){
         std::vector<float> _tem;
 
         for (int j = 0; j < col; j++){
-            float val_float = (((int32_t)tensor->data.uint8[i * col + j]) - zero_point) * scale;
+            // int8 case
+            // float val_float = (((int32_t)tensor->data.uint8[i * col + j]) - zero_point) * scale;
+            // f stand for f32
+        	float val_float = tensor->data.f[i * col + j];
             _tem.push_back(val_float);
         }
         predV.push_back(_tem);

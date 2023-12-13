@@ -45,7 +45,7 @@ private:
     int _img_height;
     int _img_width;
 
-    uint8_t *_input_8;
+    float *_input_8;
 
     const size_t nthreads = 1;
 
