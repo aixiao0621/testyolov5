@@ -40,11 +40,6 @@ void FaceDetector::loadModel(){
 }
 
 void FaceDetector:: array2Mat(char* bytes, cv::Mat& mat, int h, int w) {
-    // 检查输入参数
-    assert(bytes != nullptr);
-    assert(mat.empty());
-    assert(h > 0);
-    assert(w > 0);
 
     // 初始化输出图像
     mat.create(h, w, CV_8UC3);
