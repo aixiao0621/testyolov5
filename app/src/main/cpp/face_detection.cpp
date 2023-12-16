@@ -96,7 +96,7 @@ void FaceDetector::nonMaximumSupprition(std::vector<std::vector<float>>& predV,
             if (confidence > confThreshold) {
                 boxes.push_back(cv::Rect(left, top, w, h));
                 confidences.push_back(confidence);
-                classIds.push_back(classId.x);
+                classIds.push_back(classId.x % 80);
                 boxesNMS.push_back(cv::Rect(left, top, w, h));
             }
         }
@@ -175,8 +175,8 @@ void FaceDetector::detect(
             static_cast<float>(boxes[indices[i]].y),
             static_cast<float>(boxes[indices[i]].x + boxes[indices[i]].width),
             static_cast<float>(boxes[indices[i]].y + boxes[indices[i]].height),
-            confidences[indices[i]],
-            static_cast<float>(classIds[indices[i]])
+            confidences[indices[i]] * 100,
+            static_cast<float>(classIds[indices[i]] )
             });
     }
 }
