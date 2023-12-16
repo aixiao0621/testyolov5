@@ -27,8 +27,8 @@ class FaceDetector{
 private:
 
     // threshold
-    const float confThreshold = 0.0;
-    const float nmsThreshold = 0.0;
+    const float confThreshold = 0.5;
+    const float nmsThreshold = 0.5;
 
     std::shared_ptr<char>mModelBuffer{};
     long mModelSize;
@@ -63,7 +63,7 @@ public:
     ~FaceDetector();
 
     void detect(
-        cv::Mat& img,
+        const cv::Mat& img,
         std::vector<FaceInfo>& faces);
 
     static void array2Mat(char* bytes, cv::Mat& mat, int h, int w);

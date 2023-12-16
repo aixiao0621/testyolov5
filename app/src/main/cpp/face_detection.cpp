@@ -31,7 +31,7 @@ void FaceDetector::loadModel(){
     _in_channels = dims->data[3];
     _in_type = mInterpreter->tensor(_input)->type;
     // yolo v5 input tensor which is kTFLiteFloat32
-    _input_8 = mInterpreter->typed_input_tensor<float>(_input);
+    _input_8 = tflite::GetTensorData<float>(mInterpreter->tensor(_input));
 
     mInterpreter->SetNumThreads(nthreads);
 
@@ -61,55 +61,55 @@ void FaceDetector:: array2Mat(char* bytes, cv::Mat& mat, int h, int w) {
 }
 
 void FaceDetector::nonMaximumSupprition(std::vector<std::vector<float>>& predV,
-    std::vector<cv::Rect> &boxes,
-    std::vector<float> &confidences,
-    std::vector<int> &classIds,
-    std::vector<int> &indices,
-    const int &row,
-    const int &colum) {
-    std::vector<cv::Rect> boxesNMS;
-    std::vector<float> scores;
-    double confidence;
-    cv::Point classId;
+	std::vector<cv::Rect>& boxes,
+	std::vector<float>& confidences,
+	std::vector<int>& classIds,
+	std::vector<int>& indices,
+	const int& row,
+	const int& colum) {
+	std::vector<cv::Rect> boxesNMS;
+	
+	double confidence;
+	cv::Point classId;
 
-    for (int i = 0; i < row; i++){
-        if (predV[i][4] > confThreshold){
-            // height--> image.rows,  width--> image.cols;
-            int left = (predV[i][0] - predV[i][2] / 2) * _img_width;
-            int top = (predV[i][1] - predV[i][3] / 2) * _img_height;
-            int w = predV[i][2] * _img_width;
-            int h = predV[i][3] * _img_height;
+	for (int i = 0; i < row; i++) {
+		std::vector<float> scores;
 
-            for (int j = 5; j < colum; j++)
-            {
-                // conf = obj_conf * cls_conf
-                scores.push_back(predV[i][j] * predV[i][4]);
-            }
+		if (predV[i][4] > confThreshold) {
+			// height--> image.rows,  width--> image.cols;
+			float left = (predV[i][0] - predV[i][2] / 2) * _img_width;
+			float top = (predV[i][1] - predV[i][3] / 2) * _img_height;
+			float w = predV[i][2] * _img_width;
+			float h = predV[i][3] * _img_height;
 
-            cv::minMaxLoc(
-                scores,
-                0,
-                &confidence,
-                0,
-                &classId);
+			for (int j = 5; j < colum; j++) {
+				// conf = obj_conf * cls_conf
+				scores.push_back(predV[i][j] * predV[i][4]);
+			}
 
-            if (confidence > confThreshold) {
-                boxes.push_back(cv::Rect(left, top, w, h));
-                confidences.push_back(confidence);
-                classIds.push_back(classId.x % 80);
-                boxesNMS.push_back(cv::Rect(left, top, w, h));
-            }
-        }
-    }
+			cv::minMaxLoc(
+				scores,
+				0,
+				&confidence,
+				0,
+				&classId);
 
-    cv::dnn::NMSBoxes(
-        boxesNMS,
-        confidences,
-        confThreshold,
-        nmsThreshold,
-        indices);
+			if (confidence > confThreshold) {
+				boxes.emplace_back(left, top, w, h);
+				confidences.push_back(confidence);
+				classIds.push_back(classId.x);
+				boxesNMS.emplace_back(left, top, w, h);
+			}
+		}
+	}
+
+	cv::dnn::NMSBoxes(
+		boxesNMS,
+		confidences,
+		confThreshold,
+		nmsThreshold,
+		indices);
 }
-
 
 void FaceDetector::preProcess(cv::Mat &img) {
     cv::resize(
@@ -124,25 +124,30 @@ void FaceDetector::preProcess(cv::Mat &img) {
         // normalize
         img /= 255;
 }
+
 void FaceDetector::detect(
-    cv::Mat &img,
-    std::vector<FaceInfo> &res) {
+	const cv::Mat& img,
+	std::vector<FaceInfo>& res) {
+	auto tmp = img.clone();
 
-    _img_height = img.rows;
-    _img_width = img.cols;
+	_img_height = img.rows;
+	_img_width = img.cols;
 
-    preProcess(img);
-    fill(_input_8, img);
+	preProcess(tmp);
+	fill(_input_8, tmp);
 
-    auto state = mInterpreter->Invoke();
-    if (state!= kTfLiteOk) {
-        throw std::runtime_error("Invoke failed");
-    }
+	auto state = mInterpreter->Invoke();
+	if (state != kTfLiteOk) {
+		throw std::runtime_error("Invoke failed");
+	}
+	std::cout << "after invoke ==>\n\n\n\n" << std::endl;
 
-    int _out = mInterpreter->outputs()[0];
-    TfLiteIntArray *_out_dims = mInterpreter->tensor(_out)->dims;
-    int _out_row   = _out_dims->data[1];   
-    int _out_colum = _out_dims->data[2];   
+	int _out = mInterpreter->outputs()[0];
+	TfLiteIntArray* _out_dims = mInterpreter->tensor(_out)->dims;
+	int _out_row = _out_dims->data[1];
+	int _out_colum = _out_dims->data[2];
+
+	tflite::PrintInterpreterState(mInterpreter.get());
 
 	/*  model with
 	 *{
@@ -151,34 +156,34 @@ void FaceDetector::detect(
 	 *}
 	 */
 
-    TfLiteTensor *pOutputTensor = mInterpreter->tensor(mInterpreter->outputs()[0]);
+	TfLiteTensor* pOutputTensor = mInterpreter->tensor(mInterpreter->outputs()[0]);
 
-    std::vector<std::vector<float>> predV{};
-    tensor2Vector2d(pOutputTensor, predV, _out_row, _out_colum);
+	std::vector<std::vector<float>> predV{};
+	tensor2Vector2d(pOutputTensor, predV, _out_row, _out_colum);
 
-    std::vector<int> indices;
-    std::vector<int> classIds;
-    std::vector<float> confidences;
-    std::vector<cv::Rect> boxes;
+	std::vector<int> indices;
+	std::vector<int> classIds;
+	std::vector<float> confidences;
+	std::vector<cv::Rect> boxes;
 
-    nonMaximumSupprition(predV,
-        boxes,
-        confidences,
-        classIds,
-        indices,
-        _out_row,
-        _out_colum);
+	nonMaximumSupprition(predV,
+		boxes,
+		confidences,
+		classIds,
+		indices,
+		_out_row,
+		_out_colum);
 
-    for (int i = 0; i < indices.size(); i++) {
-        res.push_back(FaceInfo{
-            static_cast<float>(boxes[indices[i]].x),
-            static_cast<float>(boxes[indices[i]].y),
-            static_cast<float>(boxes[indices[i]].x + boxes[indices[i]].width),
-            static_cast<float>(boxes[indices[i]].y + boxes[indices[i]].height),
-            confidences[indices[i]] * 100,
-            static_cast<float>(classIds[indices[i]] )
-            });
-    }
+	for (auto idx : indices) {
+		res.push_back(FaceInfo{
+			static_cast<float>(boxes[idx].x),
+			static_cast<float>(boxes[idx].y),
+			static_cast<float>(boxes[idx].x + boxes[idx].width),
+			static_cast<float>(boxes[idx].y + boxes[idx].height),
+			confidences[idx] * 100,
+			classIds[idx]
+			});
+	}
 }
 
 void FaceDetector::tensor2Vector2d(
@@ -201,20 +206,23 @@ void FaceDetector::tensor2Vector2d(
     }
 }
 
-// 👇👇👇👇👇👇
 template <typename T>
-void FaceDetector::fill(T *in, cv::Mat &src) {
-    int n = 0, nc = src.channels(), ne = src.elemSize();
+void FaceDetector::fill(T* in, cv::Mat& src) {
+	int n = 0, nc = src.channels(), ne = src.elemSize();
+	std::cout << std::endl << nc * src.cols * src.rows << std::endl;
 
-    if (src.isContinuous()){
-        memcpy(in, src.data, nc * src.cols * src.rows);
-        return;
-    }
-    
-    for (int y = 0; y < src.rows; ++y)
-        for (int x = 0; x < src.cols; ++x)
-            for (int c = 0; c < nc; ++c)
-                in[n++] = src.data[y * src.step + x * ne + c];
+	if (src.isContinuous()) {
+		memcpy(
+			in,
+			src.data,
+			src.cols * src.rows * src.channels() * sizeof T);
+		return;
+	}
+
+	for (int y = 0; y < src.rows; ++y)
+		for (int x = 0; x < src.cols; ++x)
+			for (int c = 0; c < nc; ++c)
+				in[n++] = src.data[y * src.step + x * ne + c];
 }
 
 FaceDetector::~FaceDetector() = default;
