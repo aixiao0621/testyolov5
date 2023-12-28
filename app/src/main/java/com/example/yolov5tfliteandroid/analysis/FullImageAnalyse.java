@@ -80,6 +80,7 @@ public class FullImageAnalyse implements ImageAnalysis.Analyzer {
 
         // 这里Observable将image analyse的逻辑放到子线程计算, 渲染UI的时候再拿回来对应的数据, 避免前端UI卡顿
         Observable.create( (ObservableEmitter<Result> emitter) -> {
+
             long start = System.currentTimeMillis();
 
             byte[][] yuvBytes = new byte[3][];

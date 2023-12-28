@@ -40,22 +40,17 @@ void FaceDetector::loadModel(){
 }
 
 void FaceDetector:: array2Mat(char* bytes, cv::Mat& mat, int h, int w) {
-    // 检查输入参数
-    assert(bytes != nullptr);
-    assert(mat.empty());
-    assert(h > 0);
-    assert(w > 0);
-
     // 初始化输出图像
     mat.create(h, w, CV_8UC3);
 
     // 遍历图像像素
     for (int i = 0; i < h; i++) {
         for (int j = 0; j < w; j++) {
-            // 从 BGRA 转换为 BGR
-            mat.at<cv::Vec3b>(i, j)[0] = bytes[i * w * 4 + j * 4];
-            mat.at<cv::Vec3b>(i, j)[1] = bytes[i * w * 4 + j * 4 + 1];
+            // 从 ARGB 转换为 RGB
+            // todo::
             mat.at<cv::Vec3b>(i, j)[2] = bytes[i * w * 4 + j * 4 + 2];
+            mat.at<cv::Vec3b>(i, j)[1] = bytes[i * w * 4 + j * 4 + 2];
+            mat.at<cv::Vec3b>(i, j)[0] = bytes[i * w * 4 + j * 4 + 2];
         }
     }
 }
@@ -140,14 +135,11 @@ void FaceDetector::detect(
 	if (state != kTfLiteOk) {
 		throw std::runtime_error("Invoke failed");
 	}
-	std::cout << "after invoke ==>\n\n\n\n" << std::endl;
 
 	int _out = mInterpreter->outputs()[0];
 	TfLiteIntArray* _out_dims = mInterpreter->tensor(_out)->dims;
 	int _out_row = _out_dims->data[1];
 	int _out_colum = _out_dims->data[2];
-
-	tflite::PrintInterpreterState(mInterpreter.get());
 
 	/*  model with
 	 *{
@@ -181,7 +173,7 @@ void FaceDetector::detect(
 			static_cast<float>(boxes[idx].x + boxes[idx].width),
 			static_cast<float>(boxes[idx].y + boxes[idx].height),
 			confidences[idx] * 100,
-			classIds[idx]
+			static_cast<float>(classIds[idx])
 			});
 	}
 }
@@ -215,7 +207,7 @@ void FaceDetector::fill(T* in, cv::Mat& src) {
 		memcpy(
 			in,
 			src.data,
-			src.cols * src.rows * src.channels() * sizeof T);
+			src.cols * src.rows * src.channels() * sizeof(T));
 		return;
 	}
 

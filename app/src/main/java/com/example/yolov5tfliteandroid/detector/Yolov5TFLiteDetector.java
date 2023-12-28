@@ -2,8 +2,11 @@ package com.example.yolov5tfliteandroid.detector;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.RectF;
+import android.media.Image;
 import android.os.Build;
+import android.os.Environment;
 import android.util.Log;
 import android.util.Size;
 import android.widget.Toast;
@@ -140,6 +143,7 @@ public class Yolov5TFLiteDetector {
         Final_outputSize = outputsize;
         Log.e("test-user", "用户选择模型正常运行");
         ByteBuffer tfliteModel = null;
+        //TODO: use cpp to read file directly. createDetector(modelPath)
 
         // 获取模型文件的路径
         String modelFilePath = ModelAndLabel.getInstance().getModel();
@@ -152,7 +156,6 @@ public class Yolov5TFLiteDetector {
             Log.i("tfliteSupport", "Success reading model: " + modelFilePath);
         } catch (IOException e) {
             e.printStackTrace();
-            Log.d("aabb", "readfile failed");
             Log.e("tfliteSupport", "Error reading model: " + e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
@@ -189,27 +192,27 @@ public class Yolov5TFLiteDetector {
             Log.e("test", "Bitmap is null. Unable to create TensorImage.");
             return new ArrayList<>();
         }
-
+        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bitmap.getByteCount());
+        bitmap.copyPixelsToBuffer(byteBuffer);
         // 创建 TensorImage 以加载位图
-        TensorImage yolov5sTfliteInput;
-
-        yolov5sTfliteInput = new TensorImage(DataType.UINT8);
-        // 加载位图到 TensorImage
-        yolov5sTfliteInput.load(bitmap);
-        if (yolov5sTfliteInput == null) {
-            Log.e("test", "TensorImage is null after loading bitmap. Unable to continue detection.");
-            return new ArrayList<>();
-        }
-
+//        TensorImage yolov5sTfliteInput;
+//
+//        yolov5sTfliteInput = new TensorImage(DataType.UINT8);
+//        // 加载位图到 TensorImage
+//        yolov5sTfliteInput.load(bitmap);
+//        if (yolov5sTfliteInput == null) {
+//            Log.e("test", "TensorImage is null after loading bitmap. Unable to continue detection.");
+//            return new ArrayList<>();
+//        }
         // yolov5s-tflite的输出是:[1, 6300, 85], 可以从v5的GitHub release处找到相关tflite模型, 输出是[0,1], 处理到320.
-        TensorBuffer probabilityBuffer;
         // 推理计算
         if (detectorPtr != 0) {
             outputBuffer = detect(
                     detectorPtr,
-                    yolov5sTfliteInput.getTensorBuffer().getBuffer().array(),
-                    yolov5sTfliteInput.getWidth(),
-                    yolov5sTfliteInput.getHeight());
+                    byteBuffer.array(),
+                    bitmap.getWidth(),
+                    bitmap.getHeight());
+            Log.d("test", "===>" + outputBuffer.length);
             if (outputBuffer.length != 0){
                 boxes.clear();
 
@@ -229,9 +232,6 @@ public class Yolov5TFLiteDetector {
 
         for (int i = 0; i < boxes.size(); i++) {
             box_t box = boxes.get(i);
-            if(box.label > associatedAxisLabels.size()){
-                continue;
-            }
             Recognition r = new Recognition(
                     (int) box.label,
                     associatedAxisLabels.get((int) box.label),
@@ -239,6 +239,7 @@ public class Yolov5TFLiteDetector {
                     box.score,
                     new RectF(box.x1, box.y1, box.x2, box.y2));
             allRecognitions.add(r);
+            Log.d("test", "this is:" + associatedAxisLabels.get((int) box.label) + "\nbox"+box.x1 + " " + box.y1 + " " + box.x2 + " " + box.y2);
         }
 
         return allRecognitions;

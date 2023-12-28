@@ -27,8 +27,8 @@ class FaceDetector{
 private:
 
     // threshold
-    const float confThreshold = 0.5;
-    const float nmsThreshold = 0.5;
+    const float confThreshold = 0.25;
+    const float nmsThreshold = 0.45;
 
     std::shared_ptr<char>mModelBuffer{};
     long mModelSize;

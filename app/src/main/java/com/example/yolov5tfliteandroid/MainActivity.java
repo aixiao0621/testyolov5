@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -43,6 +44,7 @@ import android.widget.Toast;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
 
 import com.example.yolov5tfliteandroid.analysis.FullImageAnalyse;
 import com.example.yolov5tfliteandroid.analysis.FullScreenAnalyse;
@@ -236,6 +238,7 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         // 进入全图模式
                         Log.e("test", "全图模式");
+                        //TODO
                         cameraPreviewMatch.removeAllViews();
                         FullImageAnalyse fullImageAnalyse = new FullImageAnalyse(
                                 MainActivity.this,
@@ -447,6 +450,10 @@ public class MainActivity extends AppCompatActivity {
 
                 initModel("UserSelected", ModelAndLabel.getInstance().getLabel(), UserSelected_INPUT_SIZE, UserSelected_OUTPUT_SIZE);
                 selectedModel=true;
+//                if(testBitmap!=null){
+//                    Log.e("MMMM2", "testBitmap不为空");
+//                    bitmap_test.setImageBitmap(testBitmap);
+//                }
                 if (IS_FULL_SCREEN) {
                     cameraPreviewWrap.removeAllViews();
                     FullScreenAnalyse fullScreenAnalyse = new FullScreenAnalyse(MainActivity.this,

@@ -83,18 +83,15 @@ JNIEXPORT jfloatArray Java_com_example_yolov5tfliteandroid_detector_Yolov5TFLite
     // convert src to char[]
     char* src_data = reinterpret_cast<char *>(env->GetByteArrayElements(src, 0));
 
-    try{
-
-        FaceDetector::array2Mat(src_data, desMat, height, width);
-        detector->detect(desMat, res);
-        const auto arr_len = kFaceAttb * res.size();
-        detections = env->NewFloatArray(arr_len);
-
-        env->SetFloatArrayRegion(detections, 0, arr_len, reinterpret_cast<const jfloat *>(res.data()));
-    }catch (std::exception e){
-        jclass jc = env->FindClass("java/lang/Error");
-        if(jc) env->ThrowNew (jc, e.what());
+    FaceDetector::array2Mat(src_data, desMat, height, width);
+    detector->detect(desMat, res);
+    const auto arr_len = kFaceAttb * res.size();
+    if (arr_len == 0) {
+        return env->NewFloatArray(0);
     }
+    detections = env->NewFloatArray(arr_len);
+
+    env->SetFloatArrayRegion(detections, 0, arr_len, reinterpret_cast<const jfloat *>(res.data()));
 
     return detections;
 }
