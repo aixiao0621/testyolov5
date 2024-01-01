@@ -90,10 +90,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int PICK_FILE_REQUEST_CODE = 1; // 请求代码，用于标识文件选择器的返回结果
     private TextView show_address;
 
-    static {
-        System.loadLibrary("yolov5tfliteandroid");
-    }
-    public native byte[] extractTarGz(String filePath);
 
     private CameraProcess cameraProcess = new CameraProcess();
     private Size UserSelected_INPUT_SIZE;
@@ -136,10 +132,12 @@ public class MainActivity extends AppCompatActivity {
         // 加载模型
         try {
             this.yolov5TFLiteDetector = new Yolov5TFLiteDetector();
+            Log.d("gz", "111");
             this.yolov5TFLiteDetector.setModelFile(modelName);
-
+            Log.d("gz", "222");
 //            this.yolov5TFLiteDetector.addNNApiDelegate();
             this.yolov5TFLiteDetector.addGPUDelegate();
+            Log.d("gz", "333");
             this.yolov5TFLiteDetector.initialModel(this,labelFile,inputsize,outputsize);
             Log.i("model", "Success loading model" + this.yolov5TFLiteDetector.getModelFile());
         } catch (Exception e) {
@@ -340,7 +338,8 @@ public class MainActivity extends AppCompatActivity {
         // 在后台进行解压操作
         if (filePaths != null && filePaths.length > 0) {
             String filePath = filePaths[0];
-            byte[] input = extractTarGz(filePath);
+            JNITools test = new JNITools();
+            byte[] input = test.extractTarGz(filePath);
             File outputDirectory = null;
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
                 outputDirectory = getApplicationContext().getDataDir();

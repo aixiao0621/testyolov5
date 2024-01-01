@@ -24,7 +24,7 @@ char* ConvertJByteaArrayToChars(JNIEnv *env, jbyteArray bytearray){
 
 extern "C"
 JNIEXPORT jbyteArray JNICALL
-Java_com_example_yolov5tfliteandroid_MainActivity_extractTarGz(JNIEnv *env, jobject obj, jstring filePath) {
+Java_com_example_yolov5tfliteandroid_JNITools_extractTarGz(JNIEnv *env, jobject obj, jstring filePath) {
     const char *file_path = env->GetStringUTFChars(filePath, nullptr);
     gzFile file = gzopen(file_path, "rb");
     if (file == nullptr) {
@@ -54,7 +54,7 @@ Java_com_example_yolov5tfliteandroid_MainActivity_extractTarGz(JNIEnv *env, jobj
 }
 
 JNICALL extern "C"
-JNIEXPORT jlong Java_com_example_yolov5tfliteandroid_detector_Yolov5TFLiteDetector_createDetector(
+JNIEXPORT jlong Java_com_example_yolov5tfliteandroid_JNITools_createDetector(
         JNIEnv *env,
         jobject obj,
         jbyteArray modelBuffer,
@@ -67,7 +67,7 @@ JNIEXPORT jlong Java_com_example_yolov5tfliteandroid_detector_Yolov5TFLiteDetect
 }
 
 JNICALL extern "C"
-JNIEXPORT jfloatArray Java_com_example_yolov5tfliteandroid_detector_Yolov5TFLiteDetector_detect(
+JNIEXPORT jfloatArray Java_com_example_yolov5tfliteandroid_JNITools_detect(
         JNIEnv *env,
         jobject obj,
         jlong detectorPtr,

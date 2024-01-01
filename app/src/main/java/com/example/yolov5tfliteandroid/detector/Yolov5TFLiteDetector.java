@@ -11,6 +11,7 @@ import android.util.Log;
 import android.util.Size;
 import android.widget.Toast;
 
+import com.example.yolov5tfliteandroid.JNITools;
 import com.example.yolov5tfliteandroid.userSelected.InputSize;
 import com.example.yolov5tfliteandroid.userSelected.ModelAndLabel;
 import com.example.yolov5tfliteandroid.userSelected.OutputSize;
@@ -49,11 +50,7 @@ import com.example.yolov5tfliteandroid.MainActivity;
 
 public class Yolov5TFLiteDetector {
 
-     public native long createDetector(byte[] modelBuffer, long size);
-    public native float[] detect(long detectorPtr,
-                                 byte[] src,
-                                 int width,
-                                 int height);
+    JNITools test = new JNITools();
     class box_t{
         public float x1, y1, x2, y2, score, label;
         public box_t(float x1, float y1, float x2, float y2, float score, float label){
@@ -152,7 +149,7 @@ public class Yolov5TFLiteDetector {
             FileInputStream fis = new FileInputStream(modelFile);
             byte[] modelBytes = new byte[(int) modelFile.length()];
             fis.read(modelBytes);
-            detectorPtr = createDetector(modelBytes, modelBytes.length);
+            detectorPtr = test.createDetector(modelBytes, modelBytes.length);
             Log.i("tfliteSupport", "Success reading model: " + modelFilePath);
         } catch (IOException e) {
             e.printStackTrace();
@@ -207,7 +204,7 @@ public class Yolov5TFLiteDetector {
         // yolov5s-tflite的输出是:[1, 6300, 85], 可以从v5的GitHub release处找到相关tflite模型, 输出是[0,1], 处理到320.
         // 推理计算
         if (detectorPtr != 0) {
-            outputBuffer = detect(
+            outputBuffer = test.detect(
                     detectorPtr,
                     byteBuffer.array(),
                     bitmap.getWidth(),
